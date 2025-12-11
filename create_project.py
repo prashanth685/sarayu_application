@@ -12,20 +12,20 @@ if app:
     # Global stylesheet for QMessageBox and QComboBox
     app.setStyleSheet("""
     QMessageBox {
-        background-color: #fefefe;
-        color: #1a202c;
+        background-color: #fff;
+        color: #000;
         font: 13px "Segoe UI";
         border: 1px solid #cbd5e0;
         padding: 10px;
     }
 
     QMessageBox QLabel {
-        color: #1a202c;
+        color: #000;
     }
 
     QMessageBox QPushButton {
-        background-color: #3b82f6;
-        color: white;
+        background-color: #fff;
+        color: #000;
         border: none;
         padding: 6px 12px;
         border-radius: 4px;
@@ -390,7 +390,7 @@ class CreateProjectWidget(QWidget):
                 model_name = "default_model"
             
             # Create MQTT topic and payload
-            topic = f"{tag_name}/{model_name}/sensitivity"
+            topic = f"{tag_name}"
             payload = {
                 "sensitivity": sensitivity_values,
                 "channels": len(sensitivity_values),
