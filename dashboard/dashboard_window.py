@@ -32,6 +32,7 @@ from features.report import ReportFeature
 from select_project import SelectProjectWidget
 from create_project import CreateProjectWidget
 from project_structure import ProjectStructureWidget
+from dashboard.components.dc_settings import DCSettingsWindow
 import time
 import re
 from datetime import datetime
@@ -184,6 +185,7 @@ class DashboardWindow(QWidget):
         self.file_bar.new_triggered.connect(self.create_project)
         self.file_bar.save_triggered.connect(self.save_action)
         self.file_bar.settings_triggered.connect(self.settings_action)
+        self.file_bar.dc_settings_triggered.connect(self.show_dc_settings)
         self.file_bar.refresh_triggered.connect(self.refresh_action)
         self.file_bar.exit_triggered.connect(self.close)
         main_layout.addWidget(self.file_bar)
@@ -1055,7 +1057,7 @@ class DashboardWindow(QWidget):
                         sub_window.deleteLater()
                         logging.debug(f"Closed subwindow for {key} during clear_content_layout")
                     except Exception as e:
-                        logging.error(f"Error closing subwindow {key}: {str(e)}")
+                        logging.error(f"Error closing subwindow {key}: {e}")
             self.sub_windows.clear()
             logging.debug("Cleared all subwindows")
 
@@ -1085,8 +1087,36 @@ class DashboardWindow(QWidget):
         except Exception as e:
             logging.error(f"Error clearing content layout: {str(e)}")
 
+    def show_dc_settings(self):
+        """Show the DC Settings window."""
+        try:
+            # Close existing DC Settings window if open
+            for window in self.main_section.mdi_area.subWindowList():
+                if isinstance(window.widget(), DCSettingsWindow):
+                    window.close()
+            
+            # Create and show new DC Settings window
+            if self.channel_count is not None:
+                dc_window = DCSettingsWindow(self, channel_count=self.channel_count)
+                sub_window = self.main_section.mdi_area.addSubWindow(dc_window)
+                sub_window.setWindowTitle("DC Settings")
+                sub_window.showMaximized()
+                
+                # Connect closed signal to clean up
+                dc_window.closed = lambda: self.on_dc_settings_closed(dc_window)
+            else:
+                QMessageBox.warning(self, "No Project Loaded", "Please load a project first to configure DC settings.")
+        except Exception as e:
+            logging.error(f"Error showing DC settings: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to open DC settings: {str(e)}")
+    
+    def on_dc_settings_closed(self, window):
+        """Handle DC Settings window close event."""
+        # Any cleanup needed when DC Settings window is closed
+        pass
+    
     def settings_action(self):
-        QMessageBox.information(self, "Settings", "Settings functionality not implemented yet.")
+        QMessageBox.information(self, "Settings", "Settings dialog will be implemented here.")
 
     def back_to_login(self):
         try:

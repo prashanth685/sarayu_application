@@ -393,9 +393,9 @@ class CreateProjectWidget(QWidget):
             topic = f"{tag_name}"
             payload = {
                 "sensitivity": sensitivity_values,
-                "channels": len(sensitivity_values),
-                "timestamp": datetime.datetime.now().isoformat(),
-                "model": model_name
+                # "channels": len(sensitivity_values),
+                # "timestamp": datetime.datetime.now().isoformat(),
+                # "model": model_name
             }
             
             # Send MQTT message
