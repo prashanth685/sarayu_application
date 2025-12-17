@@ -8,6 +8,8 @@ class DCSettingsWindow(QMdiSubWindow):
     """
     A subwindow for displaying and editing DC settings for channels.
     """
+    # Signal emitted when the window is closed
+    closed = pyqtSignal()
     def __init__(self, parent=None, channel_count=4):
         super().__init__(parent)
         self.setWindowTitle("DC Settings")
@@ -88,6 +90,27 @@ class DCSettingsWindow(QMdiSubWindow):
         # TODO: Load actual values from settings or database
         pass
     
+    def update_measured_dc_values(self, dc_values):
+        """Update the measured DC values in the table.
+        
+        Args:
+            dc_values (list): List of DC values to display (up to channel_count values)
+        """
+        try:
+            if not dc_values or not isinstance(dc_values, list):
+                return
+                
+            # Update only the available channels, up to the channel count
+            num_values = min(len(dc_values), self.channel_count)
+            for i in range(num_values):
+                # Format the value with 3 decimal places
+                value_str = f"{dc_values[i]:}"
+                item = self.table.item(i, 1)  # Column 1 is Measured DC
+                if item:
+                    item.setText(value_str)
+        except Exception as e:
+            logging.error(f"Error updating measured DC values: {str(e)}")
+    
     def save_settings(self):
         """Save the DC settings."""
         try:
@@ -120,7 +143,10 @@ class DCSettingsWindow(QMdiSubWindow):
     
     def closeEvent(self, event):
         """Handle window close event."""
-        # Emit closed signal if needed
-        if hasattr(self, 'closed'):
+        try:
+            # Emit the closed signal before closing
             self.closed.emit()
-        super().closeEvent(event)
+            super().closeEvent(event)
+        except Exception as e:
+            logging.error(f"Error during closeEvent: {str(e)}")
+            super().closeEvent(event)

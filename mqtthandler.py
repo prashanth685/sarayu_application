@@ -18,6 +18,7 @@ class MQTTHandler(QObject):
     save_status = pyqtSignal(str)
     # model_name, tag_name, gap_voltages (list of floats)
     gap_values_received = pyqtSignal(str, str, list)
+    measured_dc_values = pyqtSignal(list)  # Signal for measured DC values (list of floats)
 
     def __init__(self, db, project_name, broker="192.168.1.231", port=1883):
         super().__init__()
@@ -254,11 +255,22 @@ class MQTTHandler(QObject):
                                     # Convert from uint16 to int16
                                     if h >= 32768:
                                         h = h - 65536
-                                    signed_gaps.append(float(h) / 100.0)
+                                    signed_gaps.append(float(h))
                                 # Emit asynchronously for interested features (e.g., Tabular View)
                                 self.gap_values_received.emit(model_name, tag_name, signed_gaps)
-                        except Exception:
-                            # Do not fail processing on gap extraction issues
+                                
+                                # Extract and emit measured DC values (header[17] to header[27]) when frame index is 100 or more
+                                if frame_index >= 100 and len(header) >= 28:  # 28 because we need up to index 27
+                                    dc_values = []
+                                    for h in header[17:28]:  # header[17] to header[27] inclusive (11 values)
+                                        if h >= 32768:
+                                            h = h - 65536  # Convert to int16 if needed
+                                        dc_values.append(float(h))  # Use raw values without dividing by 100
+                                    # Emit the DC values
+                                    self.measured_dc_values.emit(dc_values)
+                        except Exception as e:
+                            logging.warning(f"Error extracting gap/DC values: {str(e)}")
+                            # Do not fail processing on gap/DC extraction issues
                             pass
 
                         if main_channels <= 0 or sample_rate <= 0 or tacho_channels_count < 0 or samples_per_channel <= 0:

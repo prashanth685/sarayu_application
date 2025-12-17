@@ -756,6 +756,7 @@ class DashboardWindow(QWidget):
                 self.mqtt_handler.data_received.connect(self.on_data_received)
                 self.mqtt_handler.connection_status.connect(self.on_mqtt_status)
                 self.mqtt_handler.save_status.connect(self.console.append_to_console)
+                # Connect the measured_dc_values signal to update the DC settings window
                 # Receive gap voltages extracted from binary payload headers
                 try:
                     self.mqtt_handler.gap_values_received.connect(self.on_gap_values)
@@ -1097,13 +1098,30 @@ class DashboardWindow(QWidget):
             
             # Create and show new DC Settings window
             if self.channel_count is not None:
-                dc_window = DCSettingsWindow(self, channel_count=self.channel_count)
-                sub_window = self.main_section.mdi_area.addSubWindow(dc_window)
-                sub_window.setWindowTitle("DC Settings")
-                sub_window.showMaximized()
+                # Close existing DC settings window if any
+                if hasattr(self, 'dc_settings_window') and self.dc_settings_window is not None:
+                    try:
+                        self.dc_settings_window.close()
+                        self.dc_settings_window.deleteLater()
+                    except:
+                        pass
                 
-                # Connect closed signal to clean up
-                dc_window.closed = lambda: self.on_dc_settings_closed(dc_window)
+                # Create new window
+                self.dc_settings_window = DCSettingsWindow(self, channel_count=self.channel_count)
+                
+                # Connect the MQTTHandler's measured_dc_values signal to the DC window
+                if hasattr(self, 'mqtt_handler') and self.mqtt_handler is not None:
+                    self.mqtt_handler.measured_dc_values.connect(self.dc_settings_window.update_measured_dc_values)
+                
+                # Add to MDI area and show
+                sub_window = self.main_section.mdi_area.addSubWindow(self.dc_settings_window)
+                sub_window.setWindowTitle("DC Settings")
+                
+                # Connect the closed signal
+                self.dc_settings_window.closed.connect(lambda: self.on_dc_settings_closed(self.dc_settings_window))
+                
+                # Show the window
+                sub_window.showMaximized()
             else:
                 QMessageBox.warning(self, "No Project Loaded", "Please load a project first to configure DC settings.")
         except Exception as e:
