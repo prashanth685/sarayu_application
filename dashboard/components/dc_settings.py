@@ -127,8 +127,8 @@ class DCSettingsWindow(QMdiSubWindow):
         for i in range(self.channel_count):
             channel = i + 1
             try:
-                measured = float(self.table.item(i, 1).text())
-                actual = float(self.table.item(i, 2).text())
+                measured = (self.table.item(i, 1).text())
+                actual = (self.table.item(i, 2).text())
                 values[channel] = {"measured": measured, "actual": actual}
             except (ValueError, AttributeError) as e:
                 logging.error(f"Error reading DC values for channel {channel}: {str(e)}")

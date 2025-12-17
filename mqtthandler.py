@@ -255,7 +255,7 @@ class MQTTHandler(QObject):
                                     # Convert from uint16 to int16
                                     if h >= 32768:
                                         h = h - 65536
-                                    signed_gaps.append(float(h))
+                                    signed_gaps.append(h)
                                 # Emit asynchronously for interested features (e.g., Tabular View)
                                 self.gap_values_received.emit(model_name, tag_name, signed_gaps)
                                 
@@ -265,7 +265,7 @@ class MQTTHandler(QObject):
                                     for h in header[17:28]:  # header[17] to header[27] inclusive (11 values)
                                         if h >= 32768:
                                             h = h - 65536  # Convert to int16 if needed
-                                        dc_values.append(float(h))  # Use raw values without dividing by 100
+                                        dc_values.append(h)  # Use raw values without dividing by 100
                                     # Emit the DC values
                                     self.measured_dc_values.emit(dc_values)
                         except Exception as e:
