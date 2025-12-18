@@ -184,7 +184,7 @@ class DashboardWindow(QWidget):
         self.file_bar.edit_triggered.connect(self.edit_project_dialog)
         self.file_bar.new_triggered.connect(self.create_project)
         self.file_bar.save_triggered.connect(self.save_action)
-        self.file_bar.settings_triggered.connect(self.settings_action)
+        # self.file_bar.settings_triggered.connect(self.settings_action)
         self.file_bar.dc_settings_triggered.connect(self.show_dc_settings)
         self.file_bar.refresh_triggered.connect(self.refresh_action)
         self.file_bar.exit_triggered.connect(self.close)

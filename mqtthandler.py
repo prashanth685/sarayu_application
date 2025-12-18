@@ -265,7 +265,7 @@ class MQTTHandler(QObject):
                                     for h in header[17:28]:  # header[17] to header[27] inclusive (11 values)
                                         if h >= 32768:
                                             h = h - 65536  # Convert to int16 if needed
-                                        dc_values.append(h)  # Use raw values without dividing by 100
+                                        dc_values.append(h / 100.0)  # Divide by 100 to convert to actual voltage
                                     # Emit the DC values
                                     self.measured_dc_values.emit(dc_values)
                         except Exception as e:

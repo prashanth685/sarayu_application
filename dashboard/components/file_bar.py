@@ -9,7 +9,7 @@ class FileBar(QToolBar):
     edit_triggered = pyqtSignal()
     new_triggered = pyqtSignal()
     save_triggered = pyqtSignal()
-    settings_triggered = pyqtSignal()
+    # settings_triggered = pyqtSignal()
     dc_settings_triggered = pyqtSignal()
     refresh_triggered = pyqtSignal()
     exit_triggered = pyqtSignal()
@@ -58,7 +58,7 @@ class FileBar(QToolBar):
             "Edit": QAction("Edit", self),
             "New": QAction("New", self),
             "Save": QAction("Save", self),
-            "Settings": QAction("Settings", self),
+            # "Settings": QAction("Settings", self),
             "DC Settings": QAction("DC Settings", self),
             "Refresh": QAction("Refresh", self),
         }
@@ -69,7 +69,7 @@ class FileBar(QToolBar):
             ("Edit", "Edit an Existing Project", self.edit_triggered),
             ("New", "Create a New Project", self.new_triggered),
             ("Save", "Save Current Project Data", self.save_triggered),
-            ("Settings", "Open Application Settings", self.settings_triggered),
+            # ("Settings", "Open Application Settings", self.settings_triggered),
             ("DC Settings", "Configure DC Settings", self.dc_settings_triggered),
             ("Refresh", "Refresh Current View", self.refresh_triggered),
         ]
@@ -94,7 +94,7 @@ class FileBar(QToolBar):
             if mqtt_connected is not None:
                 self.mqtt_connected = mqtt_connected
 
-            always_enabled = ["Home", "Open", "New", "Settings"]
+            always_enabled = ["Home", "Open", "New"]
             for name in always_enabled:
                 self.actions[name].setEnabled(True)
 
