@@ -163,29 +163,27 @@ class DCSettingsWindow(QMdiSubWindow):
             QMessageBox.warning(self, "Error", "MQTT handler not available")
             return
         
-        calibration_data = {
-            "type": "dc_calibration",
-            "timestamp": datetime.now().isoformat(),
-            "channels": []
-        }
-        
         try:
+            # Create a list to store ratio values
+            ratio_values = []
+            
             for i in range(self.channel_count):
-                measured_text = self.table.item(i, 1).text()
-                measured = float(measured_text)
-                actual = self.table.cellWidget(i, 2).findChild(QDoubleSpinBox).value()
-                ratio = float(self.table.item(i, 3).text()) if self.table.item(i, 3).text() != "N/A" else 1.0
-                
-                calibration_data["channels"].append({
-                    "channel": i + 1,
-                    "measured_dc": measured,
-                    "actual_dc": actual,
-                    "calibration_factor": ratio
-                })
+                # Get the ratio value from the table
+                ratio_text = self.table.item(i, 3).text()
+                ratio = float(ratio_text) if ratio_text != "N/A" else 1.0
+                ratio_values.append(ratio)
+            
+            # Create a simple dictionary with just the ratio values
+            payload = {"calibrated vallues": ratio_values}
             
             # Convert to JSON and publish
-            payload = json.dumps(calibration_data, indent=2)
             self.mqtt_handler.publish("dccalibrated/data", payload)
+            
+            QMessageBox.information(self, "Success", "Calibration ratios sent successfully!")
+            
+        except Exception as e:
+            logging.error(f"Error sending calibration data: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to send calibration data: {e}")
             
             QMessageBox.information(self, "Success", "Calibration data sent successfully!")
             

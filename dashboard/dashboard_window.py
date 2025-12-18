@@ -1106,8 +1106,12 @@ class DashboardWindow(QWidget):
                     except:
                         pass
                 
-                # Create new window
-                self.dc_settings_window = DCSettingsWindow(self, channel_count=self.channel_count)
+                # Create new window with MQTT handler
+                self.dc_settings_window = DCSettingsWindow(
+                    self, 
+                    channel_count=self.channel_count,
+                    mqtt_handler=self.mqtt_handler if hasattr(self, 'mqtt_handler') else None
+                )
                 
                 # Connect the MQTTHandler's measured_dc_values signal to the DC window
                 if hasattr(self, 'mqtt_handler') and self.mqtt_handler is not None:

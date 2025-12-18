@@ -443,6 +443,43 @@ class MQTTHandler(QObject):
             logging.error(f"Error sending sensitivity values: {str(e)}")
             return False, f"Error: {str(e)}"
 
+    def publish(self, topic, payload, qos=0, retain=False):
+        """
+        Publish a message to an MQTT topic.
+        
+        Args:
+            topic (str): The topic to publish to
+            payload (str or dict): The message payload. If dict, will be converted to JSON
+            qos (int): Quality of Service level (0, 1, or 2)
+            retain (bool): Whether the message should be retained by the broker
+            
+        Returns:
+            tuple: (success, message) where success is a boolean and message is a status string
+        """
+        try:
+            if not self.connected or not self.client:
+                return False, "MQTT client not connected"
+                
+            # Convert payload to string if it's a dictionary
+            if isinstance(payload, dict):
+                payload = json.dumps(payload)
+            
+            # Publish the message
+            result = self.client.publish(topic, payload, qos=qos, retain=retain)
+            
+            if result.rc == mqtt.MQTT_ERR_SUCCESS:
+                logging.info(f"Published message to {topic}")
+                return True, "Message published successfully"
+            else:
+                error_msg = f"Failed to publish to {topic}: MQTT error {result.rc}"
+                logging.error(error_msg)
+                return False, error_msg
+                
+        except Exception as e:
+            error_msg = f"Error publishing message: {str(e)}"
+            logging.error(error_msg)
+            return False, error_msg
+
     def stop(self):
         try:
             self.running = False
