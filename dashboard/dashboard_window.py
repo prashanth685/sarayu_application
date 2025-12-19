@@ -33,6 +33,7 @@ from select_project import SelectProjectWidget
 from create_project import CreateProjectWidget
 from project_structure import ProjectStructureWidget
 from dashboard.components.dc_settings import DCSettingsWindow
+from dashboard.components.broker_settings_dialog import BrokerSettingsDialog
 import time
 import re
 from datetime import datetime
@@ -186,6 +187,7 @@ class DashboardWindow(QWidget):
         self.file_bar.save_triggered.connect(self.save_action)
         # self.file_bar.settings_triggered.connect(self.settings_action)
         self.file_bar.dc_settings_triggered.connect(self.show_dc_settings)
+        self.file_bar.broker_settings_triggered.connect(self.show_broker_settings)
         self.file_bar.refresh_triggered.connect(self.refresh_action)
         self.file_bar.exit_triggered.connect(self.close)
         main_layout.addWidget(self.file_bar)
@@ -1131,6 +1133,109 @@ class DashboardWindow(QWidget):
         except Exception as e:
             logging.error(f"Error showing DC settings: {str(e)}")
             QMessageBox.critical(self, "Error", f"Failed to open DC settings: {str(e)}")
+    
+    def show_broker_settings(self):
+        """Show the Broker Settings dialog."""
+        try:
+            # Get current broker settings from database
+            current_ip, current_port = self.db.get_broker_settings()
+            
+            # Create and show broker settings dialog
+            dialog = BrokerSettingsDialog(self, current_ip, current_port)
+            
+            # Connect the settings_saved signal
+            dialog.settings_saved.connect(self.save_broker_settings)
+            
+            # Show dialog
+            dialog.exec_()
+        except Exception as e:
+            logging.error(f"Error showing broker settings: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to open broker settings: {str(e)}")
+    
+    def save_broker_settings(self, broker_ip, port):
+        """Save broker settings to database and restart MQTT handler if needed."""
+        try:
+            # Save to database
+            success, message = self.db.save_broker_settings(broker_ip, port)
+            if not success:
+                QMessageBox.warning(self, "Error", f"Failed to save broker settings: {message}")
+                return
+            
+            # Check if MQTT handler is running and needs to be restarted
+            if hasattr(self, 'mqtt_handler') and self.mqtt_handler is not None:
+                current_broker = self.mqtt_handler.broker
+                current_port = self.mqtt_handler.port
+                
+                if current_broker != broker_ip or current_port != port:
+                    # Settings changed, restart MQTT handler
+                    reply = QMessageBox.question(
+                        self, 
+                        "Restart MQTT Connection", 
+                        f"Broker settings have changed from {current_broker}:{current_port} to {broker_ip}:{port}.\n\nDo you want to restart the MQTT connection now?",
+                        QMessageBox.Yes | QMessageBox.No
+                    )
+                    
+                    if reply == QMessageBox.Yes:
+                        self.restart_mqtt_handler(broker_ip, port)
+            
+            logging.info(f"Broker settings updated: {broker_ip}:{port}")
+            
+        except Exception as e:
+            logging.error(f"Error saving broker settings: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to save broker settings: {str(e)}")
+    
+    def restart_mqtt_handler(self, new_broker, new_port):
+        """Restart MQTT handler with new broker settings."""
+        try:
+            # Stop current MQTT handler
+            if hasattr(self, 'mqtt_handler') and self.mqtt_handler is not None:
+                self.mqtt_handler.stop()
+                
+                # Create new MQTT handler with updated settings
+                self.mqtt_handler = MQTTHandler(self.db, self.current_project, new_broker, new_port)
+                
+                # Reconnect signals
+                self.reconnect_mqtt_signals()
+                
+                # Start the new handler
+                self.mqtt_handler.start()
+                
+                logging.info(f"MQTT handler restarted with new broker: {new_broker}:{new_port}")
+                QMessageBox.information(self, "Success", f"MQTT connection restarted with new broker: {new_broker}:{new_port}")
+                
+        except Exception as e:
+            logging.error(f"Error restarting MQTT handler: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to restart MQTT connection: {str(e)}")
+    
+    def reconnect_mqtt_signals(self):
+        """Reconnect all MQTT handler signals."""
+        try:
+            if hasattr(self, 'mqtt_handler') and self.mqtt_handler is not None:
+                # Connect basic signals
+                self.mqtt_handler.data_received.connect(self.on_data_received)
+                self.mqtt_handler.connection_status.connect(self.on_mqtt_status)
+                self.mqtt_handler.save_status.connect(self.console.append_to_console)
+                
+                # Connect gap values signal
+                try:
+                    self.mqtt_handler.gap_values_received.connect(self.on_gap_values)
+                except Exception:
+                    pass
+                
+                # Re-register active features
+                try:
+                    for key in list(self.feature_instances.keys()):
+                        feat_name, mdl_name, ch_name, _uid = key
+                        try:
+                            self.mqtt_handler.add_active_feature(feat_name, mdl_name, ch_name)
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+                
+                logging.debug("MQTT signals reconnected successfully")
+        except Exception as e:
+            logging.error(f"Error reconnecting MQTT signals: {str(e)}")
     
     def on_dc_settings_closed(self, window):
         """Handle DC Settings window close event."""

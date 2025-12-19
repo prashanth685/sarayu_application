@@ -20,10 +20,15 @@ class MQTTHandler(QObject):
     gap_values_received = pyqtSignal(str, str, list)
     measured_dc_values = pyqtSignal(list)  # Signal for measured DC values (list of floats)
 
-    def __init__(self, db, project_name, broker="192.168.1.231", port=1883):
+    def __init__(self, db, project_name, broker=None, port=1883):
         super().__init__()
         self.db = db
         self.project_name = project_name
+        
+        # Get broker settings from database if not provided
+        if broker is None:
+            broker, port = self.db.get_broker_settings()
+        
         self.broker = broker
         self.port = port
         self.client = None

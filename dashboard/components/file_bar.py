@@ -11,6 +11,7 @@ class FileBar(QToolBar):
     save_triggered = pyqtSignal()
     # settings_triggered = pyqtSignal()
     dc_settings_triggered = pyqtSignal()
+    broker_settings_triggered = pyqtSignal()
     refresh_triggered = pyqtSignal()
     exit_triggered = pyqtSignal()
 
@@ -60,6 +61,7 @@ class FileBar(QToolBar):
             "Save": QAction("Save", self),
             # "Settings": QAction("Settings", self),
             "DC Settings": QAction("DC Settings", self),
+            "Broker Settings": QAction("Broker Settings", self),
             "Refresh": QAction("Refresh", self),
         }
 
@@ -71,6 +73,7 @@ class FileBar(QToolBar):
             ("Save", "Save Current Project Data", self.save_triggered),
             # ("Settings", "Open Application Settings", self.settings_triggered),
             ("DC Settings", "Configure DC Settings", self.dc_settings_triggered),
+            ("Broker Settings", "Configure Broker IP Settings", self.broker_settings_triggered),
             ("Refresh", "Refresh Current View", self.refresh_triggered),
         ]
 

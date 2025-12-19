@@ -647,3 +647,41 @@ class Database:
         except Exception as e:
             logging.error(f"Error fetching distinct filenames: {str(e)}")
             return []
+
+    def save_broker_settings(self, broker_ip, port=1883):
+        """Save broker IP and port settings to database"""
+        try:
+            self.broker_settings_collection = self.db["BrokerSettings"]
+            # Update or insert broker settings
+            result = self.broker_settings_collection.update_one(
+                {"email": self.email},
+                {"$set": {
+                    "broker_ip": broker_ip,
+                    "port": port,
+                    "updated_at": datetime.datetime.now().isoformat()
+                }},
+                upsert=True
+            )
+            logging.info(f"Broker settings saved: {broker_ip}:{port}")
+            return True, "Broker settings saved successfully"
+        except Exception as e:
+            logging.error(f"Error saving broker settings: {str(e)}")
+            return False, f"Failed to save broker settings: {str(e)}"
+
+    def get_broker_settings(self):
+        """Get broker IP and port settings from database"""
+        try:
+            self.broker_settings_collection = self.db["BrokerSettings"]
+            settings = self.broker_settings_collection.find_one({"email": self.email})
+            if settings:
+                broker_ip = settings.get("broker_ip", "192.168.1.231")
+                port = settings.get("port", 1883)
+                logging.debug(f"Retrieved broker settings: {broker_ip}:{port}")
+                return broker_ip, port
+            else:
+                # Return default settings if none found
+                logging.debug("No broker settings found, using defaults")
+                return "192.168.1.231", 1883
+        except Exception as e:
+            logging.error(f"Error fetching broker settings: {str(e)}")
+            return "192.168.1.231", 1883

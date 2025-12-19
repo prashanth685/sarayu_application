@@ -17,6 +17,7 @@ class DCSettingsWindow(QMdiSubWindow):
         self.setWindowTitle("DC Calibration")
         self.channel_count = channel_count
         self.mqtt_handler = mqtt_handler
+        self.is_sending = False  # Flag to prevent multiple rapid clicks
         self.setMinimumSize(700, 500)
         
         # Create main widget and layout
@@ -158,12 +159,25 @@ class DCSettingsWindow(QMdiSubWindow):
             self.table.item(i, 3).setText("1.000")
     
     def send_calibration(self):
-        """Send calibration data via MQTT."""
-        if not self.mqtt_handler:
-            QMessageBox.warning(self, "Error", "MQTT handler not available")
+        """Send calibration data via MQTT when the Send Calibration button is clicked."""
+        # Log the call with timestamp and stack trace
+        import traceback
+        logging.info(f"send_calibration called at {datetime.now().isoformat()}")
+        logging.debug(f"Call stack:\n{''.join(traceback.format_stack())}")
+        
+        # Prevent multiple rapid clicks
+        if hasattr(self, 'is_sending') and self.is_sending:
+            logging.warning("send_calibration called while already sending, ignoring")
             return
+            
+        self.is_sending = True
+        self.send_button.setEnabled(False)  # Disable button while sending
         
         try:
+            if not self.mqtt_handler:
+                QMessageBox.warning(self, "Error", "MQTT handler not available")
+                return
+            
             # Create a list to store ratio values
             ratio_values = []
             
@@ -173,23 +187,41 @@ class DCSettingsWindow(QMdiSubWindow):
                 ratio = float(ratio_text) if ratio_text != "N/A" else 1.0
                 ratio_values.append(ratio)
             
-            # Create a simple dictionary with just the ratio values
-            payload = {"calibrated vallues": ratio_values}
+            # Create a simple string with comma-separated ratio values and append #
+            import uuid
+            message_id = str(uuid.uuid4())[:8]  # Get first 8 chars of UUID
+            ratio_string = ','.join(map(str, ratio_values))
+            payload = f"$ DC_CalibratedData:{ratio_string} | ID:{message_id}#"
+            logging.info(f"Generated payload with ID: {message_id}")
             
-            # Convert to JSON and publish
-            self.mqtt_handler.publish("dccalibrated/data", payload)
+            logging.info(f"Sending calibration data: {payload}")
             
-            QMessageBox.information(self, "Success", "Calibration ratios sent successfully!")
+            try:
+                # First, clear any retained message by sending a None payload with retain=True
+                clear_success, _ = self.mqtt_handler.publish("dccalibrated/data", None, retain=True)
+                
+                if clear_success:
+                    logging.info("Cleared any retained messages on the topic")
+                
+                # Then send the actual message with retain=False
+                success, message = self.mqtt_handler.publish("dccalibrated/data", payload, retain=False, qos=0)
+                
+                if success:
+                    QMessageBox.information(self, "Success", "Calibration data sent successfully!")
+                else:
+                    QMessageBox.warning(self, "Warning", f"Message may not have been delivered: {message}")
+                    
+            except Exception as e:
+                logging.error(f"Error in MQTT publish sequence: {e}")
+                QMessageBox.critical(self, "Error", f"Failed to send calibration data: {e}")
             
         except Exception as e:
             logging.error(f"Error sending calibration data: {e}")
             QMessageBox.critical(self, "Error", f"Failed to send calibration data: {e}")
-            
-            QMessageBox.information(self, "Success", "Calibration data sent successfully!")
-            
-        except Exception as e:
-            logging.error(f"Error sending calibration data: {e}")
-            QMessageBox.critical(self, "Error", f"Failed to send calibration data: {e}")
+        finally:
+            # Re-enable the button and reset the flag
+            self.is_sending = False
+            self.send_button.setEnabled(True)
     
     def update_measured_dc_values(self, dc_values):
         """Update the measured DC values in the table.
